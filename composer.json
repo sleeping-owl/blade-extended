@@ -1,0 +1,32 @@
+{
+	"name": "sleeping-owl/blade-extended",
+	"description": "Extension to add bd-foreach, bd-inner-foreach, bd-if and bd-class attribute directives to your Blade templates.",
+	"homepage": "http://sleeping-owl-blade-extended.gopagoda.com",
+	"license": "MIT",
+	"keywords": [
+		"blade",
+		"extended",
+		"extension",
+		"template",
+		"laravel"
+	],
+	"authors": [
+		{
+			"name": "Sleeping Owl",
+			"email": "owl.sleeping@yahoo.com"
+		}
+	],
+	"require": {
+		"php": ">=5.4.0",
+		"illuminate/support": "4.2.*"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "4.*"
+	},
+	"autoload": {
+		"psr-0": {
+			"SleepingOwl\\BladeExtended": "src/"
+		}
+	},
+	"minimum-stability": "stable"
+}
