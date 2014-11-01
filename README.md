@@ -1,5 +1,7 @@
 ## SleepingOwl BladeExtended
 
+[![Build Status](https://travis-ci.org/sleeping-owl/blade-extended.svg?branch=master)](https://travis-ci.org/sleeping-owl/blade-extended)
+
 SleepingOwl BladeExtended is a simple library, adding `bd-foreach`, `bd-inner-foreach`, `bd-if` and `bd-class` attribute directives support to your blade templates.
 
 ##### Create multiple `li` elements, but ignore item with name "_dev"
