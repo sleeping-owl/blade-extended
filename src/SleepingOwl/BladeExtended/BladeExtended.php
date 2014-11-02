@@ -9,6 +9,9 @@ class BladeExtended
 	 */
 	protected $content;
 
+	/**
+	 * @var array
+	 */
 	protected $macros = [
 		'bd-foreach'       => 'Foreach',
 		'bd-inner-foreach' => 'InnerForeach',
@@ -16,6 +19,9 @@ class BladeExtended
 		'bd-class'         => 'Class',
 	];
 
+	/**
+	 * Register Blade extenstion
+	 */
 	public static function register()
 	{
 		$me = new static;
@@ -27,13 +33,18 @@ class BladeExtended
 	}
 
 	/**
-	 * @param mixed $content
+	 * @param string $content
 	 */
 	public function setContent($content)
 	{
 		$this->content = $content;
 	}
 
+	/**
+	 * Parse content
+	 *
+	 * @return string
+	 */
 	public function parse()
 	{
 		foreach ($this->macros as $attribute => $method)
@@ -46,24 +57,34 @@ class BladeExtended
 				}
 			}
 		}
-		return $this->content;
+		//return $this->content;
+		echo $this->content;die;
 	}
 
+	/**
+	 * @param $finded
+	 * @return bool
+	 */
 	protected function parseIf($finded)
 	{
 		$this->wrapOuterContent($finded, '@if(:value)', '@endif ');
 		return true;
 	}
 
+	/**
+	 * @param $finded
+	 * @return bool
+	 */
 	protected function parseClass($finded)
 	{
 		$value = $finded['value'];
 		$value = preg_replace('~(.+?\?[^:]+?)($|,)~', '\1 : NULL\2', $value);
 
-		if (preg_match('~\sclass="(?<class>.*?)"~', $this->content, $matches, PREG_OFFSET_CAPTURE, $finded['start']))
+		$tag = substr($this->content, $finded['start'], $finded['offset'] - $finded['start']);
+		if (preg_match('~\sclass="(?<class>.*?)"~', $tag, $matches, PREG_OFFSET_CAPTURE))
 		{
 			$class = '{{ \SleepingOwl\BladeExtended\Helper::renderClass(' . $value . ') }}';
-			$this->insertContent($matches['class'][1], $class);
+			$this->insertContent($finded['start'] + $matches['class'][1], $class);
 			return true;
 		}
 		$class = '{{ \SleepingOwl\BladeExtended\Helper::renderClassFull(' . $value . ') }}';
@@ -71,18 +92,32 @@ class BladeExtended
 		return false;
 	}
 
+	/**
+	 * @param $finded
+	 * @return bool
+	 */
 	protected function parseForeach($finded)
 	{
 		$this->wrapOuterContent($finded, '@foreach(:value)', '@endforeach ');
 		return true;
 	}
 
+	/**
+	 * @param $finded
+	 * @return bool
+	 */
 	protected function parseInnerForeach($finded)
 	{
 		$this->wrapInnerContent($finded, '@foreach(:value)', '@endforeach ');
 		return true;
 	}
 
+	/**
+	 * Find tag with $attribute
+	 *
+	 * @param $attribute
+	 * @return array|bool
+	 */
 	protected function find($attribute)
 	{
 		if ( ! preg_match('~<(?<tagname>[a-zA-Z]+).*?\s?' . $attribute . '="(?<value>.+?)".*?/?>~', $this->content, $matches, PREG_OFFSET_CAPTURE))
@@ -97,6 +132,13 @@ class BladeExtended
 		];
 	}
 
+	/**
+	 * Find closing tag inner and outer position
+	 *
+	 * @param $tagname
+	 * @param $offset
+	 * @return array
+	 */
 	protected function findTagClosingPosition($tagname, $offset)
 	{
 		$start = $offset;
@@ -126,21 +168,47 @@ class BladeExtended
 		];
 	}
 
+	/**
+	 * Insert $string to result at $position
+	 *
+	 * @param $position
+	 * @param $string
+	 */
 	protected function insertContent($position, $string)
 	{
 		$this->content = substr($this->content, 0, $position) . $string . substr($this->content, $position);
 	}
 
+	/**
+	 * Replace whole tag attribute with $replacement
+	 *
+	 * @param $attribute
+	 * @param $replacement
+	 * @param $start
+	 */
 	protected function replaceAttribute($attribute, $replacement, $start)
 	{
 		$this->content = preg_replace('~\s?' . $attribute . '=".+?"~', $replacement, $this->content, 1, $start);
 	}
 
+	/**
+	 * Delete tag attribute
+	 *
+	 * @param $attribute
+	 * @param $start
+	 */
 	protected function deleteAttribute($attribute, $start)
 	{
 		$this->replaceAttribute($attribute, '', $start);
 	}
 
+	/**
+	 * Wrap tag with $before and $after
+	 *
+	 * @param $finded
+	 * @param $before
+	 * @param $after
+	 */
 	protected function wrapOuterContent($finded, $before, $after)
 	{
 		$tagname = $finded['tagname'];
@@ -153,6 +221,13 @@ class BladeExtended
 		$this->insertContent($closingPosition['outer'], $after);
 	}
 
+	/**
+	 * Wrap tag inner content with $before and $after
+	 *
+	 * @param $finded
+	 * @param $before
+	 * @param $after
+	 */
 	protected function wrapInnerContent($finded, $before, $after)
 	{
 		$tagname = $finded['tagname'];

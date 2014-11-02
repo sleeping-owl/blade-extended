@@ -1,7 +1,12 @@
 CHANGELOG
 =========
 
+2014-11-02, v1.0.1
+------------------
+
+* Bugfix: bd-class was added to the inner tag class attribute
+
 2014-11-01, v1.0.0
------------------
+------------------
 
 * Initial Version

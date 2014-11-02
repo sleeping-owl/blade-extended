@@ -3,6 +3,10 @@
 class Helper
 {
 
+	/**
+	 * @param string ...
+	 * @return string
+	 */
 	public static function renderClass()
 	{
 		$class = self::filterArguments(func_get_args());
@@ -13,6 +17,10 @@ class Helper
 		return '';
 	}
 
+	/**
+	 * @param string ...
+	 * @return string
+	 */
 	public static function renderClassFull()
 	{
 		$class = self::filterArguments(func_get_args());
@@ -23,6 +31,12 @@ class Helper
 		return '';
 	}
 
+	/**
+	 * Remove null, false and empty strings from array
+	 *
+	 * @param $arguments
+	 * @return array
+	 */
 	protected static function filterArguments($arguments)
 	{
 		$class = array_filter($arguments, function ($el)
@@ -35,4 +49,4 @@ class Helper
 		return $class;
 	}
 
-} 
+}
