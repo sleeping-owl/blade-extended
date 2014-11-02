@@ -61,7 +61,7 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 	{
 		$this->blade->setContent('<div bd-class="\'my-class\'">div</div>');
 		$content = $this->blade->parse();
-		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderClassFull(\'my-class\') }}>div</div>', $content);
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", \'my-class\') }}>div</div>', $content);
 	}
 
 	/** @test */
@@ -69,7 +69,7 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 	{
 		$this->blade->setContent('<div bd-class="$myClass">div</div>');
 		$content = $this->blade->parse();
-		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderClassFull($myClass) }}>div</div>', $content);
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", $myClass) }}>div</div>', $content);
 	}
 
 	/** @test */
@@ -77,7 +77,7 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 	{
 		$this->blade->setContent('<div bd-class="$myClass, $myClass2, \'my-class\'">div</div>');
 		$content = $this->blade->parse();
-		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderClassFull($myClass, $myClass2, \'my-class\') }}>div</div>', $content);
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", $myClass, $myClass2, \'my-class\') }}>div</div>', $content);
 	}
 
 	/** @test */
@@ -85,7 +85,7 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 	{
 		$this->blade->setContent('<div bd-class="$myClass ? \'red\', $myClass2 ? \'blue\', \'my-class\'">div</div>');
 		$content = $this->blade->parse();
-		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderClassFull($myClass ? \'red\' : NULL, $myClass2 ? \'blue\' : NULL, \'my-class\') }}>div</div>', $content);
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", $myClass ? \'red\' : NULL, $myClass2 ? \'blue\' : NULL, \'my-class\') }}>div</div>', $content);
 	}
 
 	/** @test */
@@ -94,6 +94,14 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 		$this->blade->setContent('<div bd-class="$myClass" class="my-class">div</div>');
 		$content = $this->blade->parse();
 		$this->assertEquals('<div class="{{ \SleepingOwl\BladeExtended\Helper::renderClass($myClass) }}my-class">div</div>', $content);
+	}
+
+	/** @test */
+	public function it_select_corrent_class_attribute()
+	{
+		$this->blade->setContent('<div bd-class="$myClass"><b class="my-class">b</b></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", $myClass) }}><b class="my-class">b</b></div>', $content);
 	}
 
 }

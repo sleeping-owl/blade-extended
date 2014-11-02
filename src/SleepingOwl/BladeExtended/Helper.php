@@ -21,12 +21,14 @@ class Helper
 	 * @param string ...
 	 * @return string
 	 */
-	public static function renderClassFull()
+	public static function renderAttribute()
 	{
-		$class = self::filterArguments(func_get_args());
-		if ( ! empty($class))
+		$args = func_get_args();
+		$attribute = array_shift($args);
+		$values = self::filterArguments($args);
+		if ( ! empty($values))
 		{
-			return ' class="' . implode(' ', $class) . '"';
+			return ' ' . $attribute . '="' . implode(' ', $values) . '"';
 		}
 		return '';
 	}

@@ -1,9 +1,16 @@
 <?php namespace SleepingOwl\BladeExtended;
 
 use \Blade;
+use Closure;
 
 class BladeExtended
 {
+
+	/**
+	 * @var BladeExtended
+	 */
+	protected static $instance;
+
 	/**
 	 * @var string
 	 */
@@ -13,23 +20,51 @@ class BladeExtended
 	 * @var array
 	 */
 	protected $macros = [
-		'bd-foreach'       => 'Foreach',
-		'bd-inner-foreach' => 'InnerForeach',
-		'bd-if'            => 'If',
-		'bd-class'         => 'Class',
+		'bd-foreach'                        => 'Foreach',
+		'bd-inner-foreach'                  => 'InnerForeach',
+		'bd-if'                             => 'If',
+		'bd-class'                          => 'Class',
+		'bd-attr-(?<attribute>[a-zA-Z-_]+)' => 'Attr',
 	];
+
+	/**
+	 * @var array
+	 */
+	protected $extensions = [];
+
+	/**
+	 * @return BladeExtended
+	 */
+	public static function instance()
+	{
+		if (is_null(static::$instance))
+		{
+			static::$instance = new static;
+		}
+		return static::$instance;
+	}
 
 	/**
 	 * Register Blade extenstion
 	 */
 	public static function register()
 	{
-		$me = new static;
-		Blade::extend(function ($content) use ($me)
+		Blade::extend(function ($content)
 		{
+			$me = static::instance();
 			$me->setContent($content);
 			return $me->parse();
 		});
+	}
+
+	/**
+	 * @param $attribute
+	 * @param callable $callback
+	 */
+	public static function extend($attribute, Closure $callback)
+	{
+		$me = static::instance();
+		$me->registerExtension($attribute, $callback);
 	}
 
 	/**
@@ -47,69 +82,83 @@ class BladeExtended
 	 */
 	public function parse()
 	{
-		foreach ($this->macros as $attribute => $method)
+		$macros = array_merge($this->macros, $this->extensions);
+		foreach ($macros as $attribute => $method)
 		{
 			while ($finded = $this->find($attribute))
 			{
-				if ($this->{'parse' . $method}($finded))
+				if (is_callable($method))
 				{
-					$this->deleteAttribute($attribute, $finded['start']);
+					$method($this, $finded);
+				} else
+				{
+					$this->{'parse' . $method}($finded);
 				}
+				$this->deleteAttribute($attribute, $finded['opening']['start'], $finded['opening']['end']);
 			}
 		}
-		//return $this->content;
-		echo $this->content;die;
+		return $this->content;
 	}
 
 	/**
 	 * @param $finded
 	 * @return bool
 	 */
-	protected function parseIf($finded)
+	protected function parseIf(&$finded)
 	{
 		$this->wrapOuterContent($finded, '@if(:value)', '@endif ');
-		return true;
 	}
 
 	/**
 	 * @param $finded
-	 * @return bool
 	 */
-	protected function parseClass($finded)
+	protected function parseClass(&$finded)
 	{
-		$value = $finded['value'];
-		$value = preg_replace('~(.+?\?[^:]+?)($|,)~', '\1 : NULL\2', $value);
+		$value = $this->parseShortSyntax($finded['value']);
 
-		$tag = substr($this->content, $finded['start'], $finded['offset'] - $finded['start']);
+		$tag = substr($this->content, $finded['opening']['start'], $finded['opening']['end'] - $finded['opening']['start']);
 		if (preg_match('~\sclass="(?<class>.*?)"~', $tag, $matches, PREG_OFFSET_CAPTURE))
 		{
 			$class = '{{ \SleepingOwl\BladeExtended\Helper::renderClass(' . $value . ') }}';
-			$this->insertContent($finded['start'] + $matches['class'][1], $class);
-			return true;
+			$this->insertContent($finded['opening']['start'] + $matches['class'][1], $class);
+		} else
+		{
+			$class = '{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", ' . $value . ') }}';
+			$this->replaceAttribute('bd-class', $class, $finded['opening']['start'], $finded['opening']['end']);
 		}
-		$class = '{{ \SleepingOwl\BladeExtended\Helper::renderClassFull(' . $value . ') }}';
-		$this->replaceAttribute('bd-class', $class, $finded['start']);
-		return false;
 	}
 
 	/**
 	 * @param $finded
-	 * @return bool
 	 */
-	protected function parseForeach($finded)
+	protected function parseAttr(&$finded)
+	{
+		$attribute = $finded['attribute'];
+		$value = $this->parseShortSyntax($finded['value']);
+
+		$tag = substr($this->content, $finded['opening']['start'], $finded['opening']['end'] - $finded['opening']['start']);
+		if (preg_match('~\s' . $attribute . '="(.*?)"~', $tag, $matches, PREG_OFFSET_CAPTURE))
+		{
+			throw new \InvalidArgumentException("bd-attr-$attribute can't be used with existing attribute $attribute");
+		}
+		$attr = '{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("' . $attribute . '",' . $value . ') }}';
+		$this->replaceAttribute('bd-attr-' . $attribute, $attr, $finded['opening']['start'], $finded['opening']['end']);
+	}
+
+	/**
+	 * @param $finded
+	 */
+	protected function parseForeach(&$finded)
 	{
 		$this->wrapOuterContent($finded, '@foreach(:value)', '@endforeach ');
-		return true;
 	}
 
 	/**
 	 * @param $finded
-	 * @return bool
 	 */
-	protected function parseInnerForeach($finded)
+	protected function parseInnerForeach(&$finded)
 	{
 		$this->wrapInnerContent($finded, '@foreach(:value)', '@endforeach ');
-		return true;
 	}
 
 	/**
@@ -120,16 +169,23 @@ class BladeExtended
 	 */
 	protected function find($attribute)
 	{
-		if ( ! preg_match('~<(?<tagname>[a-zA-Z]+).*?\s?' . $attribute . '="(?<value>.+?)".*?/?>~', $this->content, $matches, PREG_OFFSET_CAPTURE))
+		if ( ! preg_match('~<(?<tagname>[a-zA-Z]+)[^<>]*?\s?' . $attribute . '="(?<value>.+?)".*?/?>~', $this->content, $matches, PREG_OFFSET_CAPTURE))
 		{
 			return false;
 		}
-		return [
-			'tagname' => $matches['tagname'][0],
-			'value'   => $matches['value'][0],
-			'start'   => $matches[0][1],
-			'offset'  => $matches[0][1] + strlen($matches[0][0])
+		$result = [
+			'opening' => [
+				'start' => $matches[0][1],
+				'end'   => $matches[0][1] + strlen($matches[0][0])
+			]
 		];
+		foreach ($matches as $key => $data)
+		{
+			if (is_numeric($key)) continue;
+			$result[$key] = $data[0];
+		}
+		$result['closing'] = $this->findTagClosingPosition($result['tagname'], $result['opening']['end']);
+		return $result;
 	}
 
 	/**
@@ -145,7 +201,10 @@ class BladeExtended
 		if (substr($this->content, $offset - 2, 2) === '/>')
 		{
 			# short tag <br/>
-			return ['inner' => $offset, 'outer' => $offset];
+			return [
+				'start' => $offset,
+				'end'   => $offset
+			];
 		}
 		$opening = 1;
 		$closing = 0;
@@ -163,8 +222,8 @@ class BladeExtended
 			$closing = preg_match_all("~</$tagname~", $innerContent);
 		}
 		return [
-			'inner' => $innerEnd,
-			'outer' => $offset
+			'start' => $innerEnd,
+			'end'   => $offset
 		];
 	}
 
@@ -174,9 +233,20 @@ class BladeExtended
 	 * @param $position
 	 * @param $string
 	 */
-	protected function insertContent($position, $string)
+	public function insertContent($position, $string)
 	{
 		$this->content = substr($this->content, 0, $position) . $string . substr($this->content, $position);
+	}
+
+	/**
+	 * Remove part of string from content
+	 *
+	 * @param $from
+	 * @param $to
+	 */
+	public function removeContent($from, $to)
+	{
+		$this->content = substr($this->content, 0, $from) . substr($this->content, $to);
 	}
 
 	/**
@@ -185,10 +255,18 @@ class BladeExtended
 	 * @param $attribute
 	 * @param $replacement
 	 * @param $start
+	 * @param $end
 	 */
-	protected function replaceAttribute($attribute, $replacement, $start)
+	public function replaceAttribute($attribute, $replacement, $start, $end)
 	{
-		$this->content = preg_replace('~\s?' . $attribute . '=".+?"~', $replacement, $this->content, 1, $start);
+		$tag = substr($this->content, $start, $end - $start);
+		if (preg_match('~\s?' . $attribute . '=".+?"~', $tag, $matches, PREG_OFFSET_CAPTURE))
+		{
+			$attributeStart = $start + $matches[0][1];
+			$attributeEnd = $attributeStart + strlen($matches[0][0]);
+			$this->removeContent($attributeStart, $attributeEnd);
+			$this->insertContent($attributeStart, $replacement);
+		}
 	}
 
 	/**
@@ -196,10 +274,11 @@ class BladeExtended
 	 *
 	 * @param $attribute
 	 * @param $start
+	 * @param $end
 	 */
-	protected function deleteAttribute($attribute, $start)
+	public function deleteAttribute($attribute, $start, $end)
 	{
-		$this->replaceAttribute($attribute, '', $start);
+		$this->replaceAttribute($attribute, '', $start, $end);
 	}
 
 	/**
@@ -209,16 +288,15 @@ class BladeExtended
 	 * @param $before
 	 * @param $after
 	 */
-	protected function wrapOuterContent($finded, $before, $after)
+	public function wrapOuterContent(&$finded, $before, $after)
 	{
-		$tagname = $finded['tagname'];
 		$value = $finded['value'];
-		$start = $finded['start'];
-		$offset = $finded['offset'];
+		$start = $finded['opening']['start'];
 		$insertion = strtr($before, [':value' => $value]);
 		$this->insertContent($start, $insertion);
-		$closingPosition = $this->findTagClosingPosition($tagname, $offset + strlen($insertion));
-		$this->insertContent($closingPosition['outer'], $after);
+		$this->moveOpeningPositionBy($finded, strlen($insertion));
+		$closingPosition = $finded['closing']['end'] + strlen($insertion);
+		$this->insertContent($closingPosition, $after);
 	}
 
 	/**
@@ -228,15 +306,42 @@ class BladeExtended
 	 * @param $before
 	 * @param $after
 	 */
-	protected function wrapInnerContent($finded, $before, $after)
+	public function wrapInnerContent($finded, $before, $after)
 	{
-		$tagname = $finded['tagname'];
 		$value = $finded['value'];
-		$offset = $finded['offset'];
+		$end = $finded['opening']['end'];
 		$insertion = strtr($before, [':value' => $value]);
-		$this->insertContent($offset, $insertion);
-		$closingPosition = $this->findTagClosingPosition($tagname, $offset + strlen($insertion));
-		$this->insertContent($closingPosition['inner'], $after);
+		$this->insertContent($end, $insertion);
+		$closingPosition = $finded['closing']['start'] + strlen($insertion);
+		$this->insertContent($closingPosition, $after);
+	}
+
+	/**
+	 * @param $value
+	 * @return mixed
+	 */
+	public function parseShortSyntax($value)
+	{
+		return preg_replace('~(.+?\?[^:]+?)($|,)~', '\1 : NULL\2', $value);
+	}
+
+	/**
+	 * @param $attribute
+	 * @param callable $callback
+	 */
+	public function registerExtension($attribute, Closure $callback)
+	{
+		$this->extensions[$attribute] = $callback;
+	}
+
+	/**
+	 * @param $finded
+	 * @param $length
+	 */
+	protected function moveOpeningPositionBy(&$finded, $length)
+	{
+		$finded['opening']['start'] += $length;
+		$finded['opening']['end'] += $length;
 	}
 
 }
