@@ -25,6 +25,9 @@ class BladeExtended
 		'bd-if'                             => 'If',
 		'bd-class'                          => 'Class',
 		'bd-attr-(?<attribute>[a-zA-Z-_]+)' => 'Attr',
+		'bd-yield'                          => 'Yield',
+		'bd-include'                        => 'Include',
+		'bd-unwrap'                         => 'Unwrap',
 	];
 
 	/**
@@ -98,6 +101,7 @@ class BladeExtended
 			}
 		}
 		return $this->content;
+		//echo $this->content;die;
 	}
 
 	/**
@@ -121,6 +125,7 @@ class BladeExtended
 		{
 			$class = '{{ \SleepingOwl\BladeExtended\Helper::renderClass(' . $value . ') }}';
 			$this->insertContent($finded['opening']['start'] + $matches['class'][1], $class);
+			$finded['opening']['end'] += strlen($class);
 		} else
 		{
 			$class = '{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", ' . $value . ') }}';
@@ -162,6 +167,31 @@ class BladeExtended
 	}
 
 	/**
+	 * @param $finded
+	 */
+	protected function parseYield(&$finded)
+	{
+		$this->wrapInnerContent($finded, '@yield(:value)', '');
+	}
+
+	/**
+	 * @param $finded
+	 */
+	protected function parseInclude(&$finded)
+	{
+		$this->wrapInnerContent($finded, '@include(:value)', '');
+	}
+
+	/**
+	 * @param $finded
+	 */
+	protected function parseUnwrap(&$finded)
+	{
+		$this->replaceContent($finded['closing']['start'], $finded['closing']['end'], '');
+		$this->replaceContent($finded['opening']['start'], $finded['opening']['end'], '');
+	}
+
+	/**
 	 * Find tag with $attribute
 	 *
 	 * @param $attribute
@@ -169,7 +199,7 @@ class BladeExtended
 	 */
 	protected function find($attribute)
 	{
-		if ( ! preg_match('~<(?<tagname>[a-zA-Z]+)[^<>]*?\s?' . $attribute . '="(?<value>.+?)".*?/?>~', $this->content, $matches, PREG_OFFSET_CAPTURE))
+		if ( ! preg_match('~<(?<tagname>[a-zA-Z]+)[^<>]*?\s?' . $attribute . '(="(?<value>.+?)")?.*?/?>~', $this->content, $matches, PREG_OFFSET_CAPTURE))
 		{
 			return false;
 		}
@@ -236,6 +266,19 @@ class BladeExtended
 	public function insertContent($position, $string)
 	{
 		$this->content = substr($this->content, 0, $position) . $string . substr($this->content, $position);
+	}
+
+	/**
+	 * Replace from $from to $to with $string
+	 *
+	 * @param $from
+	 * @param $to
+	 * @param $string
+	 */
+	public function replaceContent($from, $to, $string)
+	{
+		$this->removeContent($from, $to);
+		$this->insertContent($from, $string);
 	}
 
 	/**

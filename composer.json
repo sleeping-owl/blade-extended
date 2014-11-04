@@ -1,6 +1,6 @@
 {
 	"name": "sleeping-owl/blade-extended",
-	"description": "Extension to add bd-foreach, bd-inner-foreach, bd-if, bd-attr and bd-class attribute directives to your Blade templates.",
+	"description": "Extension to add control directives attributes to your Blade templates (bd-foreach, bd-inner-foreach, bd-if, bd-attr, bd-class and other).",
 	"homepage": "http://sleeping-owl-blade-extended.gopagoda.com",
 	"license": "MIT",
 	"keywords": [
