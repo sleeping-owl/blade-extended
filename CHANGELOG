@@ -7,6 +7,7 @@ CHANGELOG
 * New directive: bd-yield. Use to insert @yield().
 * New directive: bd-include. Use to insert @include().
 * New directive: bd-unwrap. Use to unwrap tag (replace entire tag with it content).
+* New directive: bd-section. Use to wrap tag with @section and @stop.
 
 2014-11-02, v1.1.0
 ------------------

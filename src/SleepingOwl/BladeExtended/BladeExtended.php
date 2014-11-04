@@ -27,6 +27,7 @@ class BladeExtended
 		'bd-attr-(?<attribute>[a-zA-Z-_]+)' => 'Attr',
 		'bd-yield'                          => 'Yield',
 		'bd-include'                        => 'Include',
+		'bd-section'                        => 'Section',
 		'bd-unwrap'                         => 'Unwrap',
 	];
 
@@ -101,7 +102,6 @@ class BladeExtended
 			}
 		}
 		return $this->content;
-		//echo $this->content;die;
 	}
 
 	/**
@@ -180,6 +180,14 @@ class BladeExtended
 	protected function parseInclude(&$finded)
 	{
 		$this->wrapInnerContent($finded, '@include(:value)', '');
+	}
+
+	/**
+	 * @param $finded
+	 */
+	protected function parseSection(&$finded)
+	{
+		$this->wrapOuterContent($finded, '@section(:value)', '@stop');
 	}
 
 	/**
