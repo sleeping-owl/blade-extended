@@ -13,7 +13,7 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 	protected function setUp()
 	{
 		parent::setUp();
-		$this->blade = new BladeExtended;
+		$this->blade = BladeExtended::instance();
 	}
 
 	/** @test */
@@ -94,14 +94,94 @@ class BladeExtendedTest extends \PHPUnit_Framework_TestCase
 		$this->blade->setContent('<div bd-class="$myClass" class="my-class">div</div>');
 		$content = $this->blade->parse();
 		$this->assertEquals('<div class="{{ \SleepingOwl\BladeExtended\Helper::renderClass($myClass) }}my-class">div</div>', $content);
+
+		$this->blade->setContent('<div class="my-class" bd-class="$myClass">div</div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div class="{{ \SleepingOwl\BladeExtended\Helper::renderClass($myClass) }}my-class">div</div>', $content);
 	}
 
 	/** @test */
-	public function it_select_corrent_class_attribute()
+	public function it_selects_current_tag_class_attribute()
 	{
 		$this->blade->setContent('<div bd-class="$myClass"><b class="my-class">b</b></div>');
 		$content = $this->blade->parse();
 		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("class", $myClass) }}><b class="my-class">b</b></div>', $content);
+	}
+
+	/** @test */
+	public function it_supports_attributes()
+	{
+		$this->blade->setContent('<div bd-attr-id="\'my-id\'"></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("id",\'my-id\') }}></div>', $content);
+	}
+
+	/** @test */
+	public function it_supports_attributes_with_dashes()
+	{
+		$this->blade->setContent('<div bd-attr-data-test="$test"></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div{{ \SleepingOwl\BladeExtended\Helper::renderAttribute("data-test",$test) }}></div>', $content);
+	}
+
+	/** @test */
+	public function it_throws_exception_when_attribute_already_exists()
+	{
+		$this->setExpectedException('\InvalidArgumentException');
+		$this->blade->setContent('<div bd-attr-id="$test" id="test"></div>');
+		$content = $this->blade->parse();
+	}
+
+	/** @test */
+	public function it_throws_exception_when_closing_tag_not_found()
+	{
+		$this->setExpectedException('\InvalidArgumentException');
+		$this->blade->setContent('<div bd-attr-id="$test"><div></div>');
+		$content = $this->blade->parse();
+	}
+
+	/** @test */
+	public function it_supports_extensions()
+	{
+		BladeExtended::extend('bd-test', function (BladeExtended $bladeExtended, &$finded)
+		{
+			$bladeExtended->wrapOuterContent($finded, '@if(myCustomTest())', '@endif');
+		});
+		$this->blade->setContent('<div bd-test></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('@if(myCustomTest())<div></div>@endif', $content);
+	}
+
+	/** @test */
+	public function it_supports_yield()
+	{
+		$this->blade->setContent('<div bd-yield="$template"></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div>@yield($template)</div>', $content);
+	}
+
+	/** @test */
+	public function it_supports_include()
+	{
+		$this->blade->setContent('<div bd-include="$template"></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div>@include($template)</div>', $content);
+	}
+
+	/** @test */
+	public function it_supports_unwrap()
+	{
+		$this->blade->setContent('<div><any bd-unwrap></any></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('<div></div>', $content);
+	}
+
+	/** @test */
+	public function it_supports_section()
+	{
+		$this->blade->setContent('<div bd-section="\'content\'"></div>');
+		$content = $this->blade->parse();
+		$this->assertEquals('@section(\'content\')<div></div>@stop', $content);
 	}
 
 }

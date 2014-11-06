@@ -223,6 +223,10 @@ class BladeExtended
 			$result[$key] = $data[0];
 		}
 		$result['closing'] = $this->findTagClosingPosition($result['tagname'], $result['opening']['end']);
+		if ( ! isset($result['value']))
+		{
+			$result['value'] = '';
+		}
 		return $result;
 	}
 
@@ -311,7 +315,7 @@ class BladeExtended
 	public function replaceAttribute($attribute, $replacement, $start, $end)
 	{
 		$tag = substr($this->content, $start, $end - $start);
-		if (preg_match('~\s?' . $attribute . '=".+?"~', $tag, $matches, PREG_OFFSET_CAPTURE))
+		if (preg_match('~\s?' . $attribute . '(=".+?")?~', $tag, $matches, PREG_OFFSET_CAPTURE))
 		{
 			$attributeStart = $start + $matches[0][1];
 			$attributeEnd = $attributeStart + strlen($matches[0][0]);
