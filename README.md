@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/sleeping-owl/blade-extended.svg?branch=master)](https://travis-ci.org/sleeping-owl/blade-extended)
 [![Latest Stable Version](https://poser.pugx.org/sleeping-owl/blade-extended/v/stable.svg)](https://packagist.org/packages/sleeping-owl/blade-extended)
 [![License](https://poser.pugx.org/sleeping-owl/blade-extended/license.svg)](https://packagist.org/packages/sleeping-owl/blade-extended)
+[![Code Climate](https://codeclimate.com/github/sleeping-owl/blade-extended/badges/gpa.svg)](https://codeclimate.com/github/sleeping-owl/blade-extended)
 
 
 SleepingOwl BladeExtended is a simple library, adding `bd-foreach`, `bd-inner-foreach`, `bd-if` and `bd-class` attribute directives support to your blade templates.
