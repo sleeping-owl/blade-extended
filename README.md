@@ -51,7 +51,7 @@ SleepingOwl BladeExtended is a simple library, adding `bd-foreach`, `bd-inner-fo
  
 ## Documentation
 
-Documentation can be found at [blade-extended documentation](http://sleeping-owl-blade-extended.gopagoda.com).
+Documentation can be found at [blade-extended documentation](http://sleepingowlbladeextended.cloudcontrolled.com).
 
 ## Copyright and License
 
